@@ -3,11 +3,23 @@ import csv
 
 output_dir = '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Client'
 
-id_column = 'Origin Path'
+id_column = 'Document Path'
 
 merge_columns = [
-    'Products.Product Name'
+    'Products Product Name'
 ]
+
+class UnicodeCsvDictReader:
+    def __init__(self, utf8_data):
+        self.csv_reader = csv.DictReader(utf8_data)
+
+    def __iter__(self):
+        for row in self.csv_reader:
+            yield { unicode(key, 'utf-8'): unicode(value, 'utf-8') for key, value in row.iteritems() }
+
+    @property
+    def fieldnames(self):
+        return self.csv_reader.fieldnames
 
 for dir in os.listdir(output_dir):
     delivery_dir = os.path.join(output_dir, dir)
@@ -22,7 +34,7 @@ for dir in os.listdir(output_dir):
     row_data = []
     # Populate row_data with data
     with open(load_file_path, 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
+        csv_reader = UnicodeCsvDictReader(csv_file)
         for row in csv_reader:
             if last_id == row[id_column]:
                 for col in merge_columns:
@@ -36,5 +48,6 @@ for dir in os.listdir(output_dir):
 
         with open(out_load_file_path, 'wb') as csv_file:
             csv_writer = csv.DictWriter(f=csv_file, fieldnames=csv_reader.fieldnames)
+            csv_writer.writeheader()
             for row in row_data:
                 csv_writer.writerow(row)
