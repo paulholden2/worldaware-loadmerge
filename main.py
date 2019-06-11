@@ -1,5 +1,7 @@
 import os
+import re
 import csv
+import codecs
 
 output_dir = '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Client'
 
@@ -21,6 +23,41 @@ class UnicodeCsvDictReader:
     def fieldnames(self):
         return self.csv_reader.fieldnames
 
+def days_in(unit):
+    if unit == 'years':
+        return 365
+    elif unit == 'months':
+        return 30
+    elif unit == 'weeks':
+        return 7
+    elif unit == 'days':
+        return 1
+    else:
+        return 0
+
+def convert_period(phrase):
+    m = re.search('^(\d+) (years|months|days|weeks)$', phrase)
+    if m is None:
+        return m
+    n = int(m.group(1))
+    unit = m.group(2)
+    days = days_in(unit) * n
+    return str(days)
+
+def scrub_load_row(row):
+    periods = [
+        'Direct Client And Indirect Partner MSA Initial Term Length',
+        'Direct Client And Indirect Partner PA Initial Term Length',
+        'Legal Terms Term Non-Renewal Notice',
+        'Legal Terms PA Term Non-Renewal Notice',
+        'Legal Terms Term for Convenience Notice Period (days)'
+    ]
+
+    for p in periods:
+        if p in row:
+            row[p] = convert_period(row[p])
+    return row
+
 for dir in os.listdir(output_dir):
     delivery_dir = os.path.join(output_dir, dir)
     load_file_path = os.path.join(delivery_dir, 'Ingestion Load File.csv')
@@ -33,7 +70,7 @@ for dir in os.listdir(output_dir):
     last_row = None
     row_data = []
     # Populate row_data with data
-    with open(load_file_path, 'r') as csv_file:
+    with codecs.open(load_file_path, 'r', encoding='utf-8-sig') as csv_file:
         csv_reader = UnicodeCsvDictReader(csv_file)
         for row in csv_reader:
             if last_id == row[id_column]:
@@ -50,4 +87,4 @@ for dir in os.listdir(output_dir):
             csv_writer = csv.DictWriter(f=csv_file, fieldnames=csv_reader.fieldnames)
             csv_writer.writeheader()
             for row in row_data:
-                csv_writer.writerow(row)
+                csv_writer.writerow(scrub_load_row(row))
