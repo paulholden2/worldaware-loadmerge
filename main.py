@@ -56,6 +56,11 @@ def scrub_load_row(row):
     for p in periods:
         if p in row:
             row[p] = convert_period(row[p])
+
+    for k, v in row.iteritems():
+        if v is not None:
+            row[k] = v.replace('\n', ' ').replace('\r', ' ')
+
     return row
 
 for dir in os.listdir(output_dir):
@@ -76,7 +81,7 @@ for dir in os.listdir(output_dir):
             if last_id == row[id_column]:
                 for col in merge_columns:
                     new_val = row[col]
-                    if new_val is not None and new_val != '':
+                    if new_val is not None and new_val != '' and new_val != 'NOT NEEDED':
                         last_row[col] += '|' + row[col]
             else:
                 last_row = row.copy()
