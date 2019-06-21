@@ -6,6 +6,7 @@ import codecs
 output_dirs = [
     '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Client',
     '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Partner',
+    '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Contractor',
 ]
 
 id_column = 'Document Path'
@@ -84,18 +85,26 @@ def process_output_dir(output_dir):
             for row in csv_reader:
                 if last_id == row[id_column]:
                     for col in merge_columns:
-                        new_val = row[col]
-                        if new_val is not None and new_val != '' and new_val != 'NOT NEEDED':
-                            last_row[col] += '|' + row[col]
+                        # If the file contains the column to merge...
+                        if col in row:
+                            new_val = row[col]
+                            if new_val is not None and new_val != '' and new_val != 'NOT NEEDED' and new_val != '!!NOPRODUCT!!':
+                                last_row[col] += '|' + row[col]
                 else:
                     last_row = row.copy()
                     row_data.append(last_row)
                     last_id = row[id_column]
 
             with open(out_load_file_path, 'wb') as csv_file:
-                csv_writer = csv.DictWriter(f=csv_file, fieldnames=csv_reader.fieldnames)
+                fieldnames = list(csv_reader.fieldnames)
+                for i, v in enumerate(fieldnames):
+                    if v == 'Money Total Contract Amount Year 1 (incl multi yr, fee)':
+                        fieldnames[i] = 'Contract Amount Year 1'
+                csv_writer = csv.DictWriter(f=csv_file, fieldnames=fieldnames)
                 csv_writer.writeheader()
                 for row in row_data:
+                    if 'Money Total Contract Amount Year 1 (incl multi yr, fee)' in row:
+                        row['Contract Amount Year 1'] = row.pop('Money Total Contract Amount Year 1 (incl multi yr, fee)')
                     csv_writer.writerow(scrub_load_row(row))
 
 for dir in output_dirs:
