@@ -7,6 +7,8 @@ output_dirs = [
     '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Client',
     '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Partner',
     '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Contractor',
+    '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\NDA',
+    '\\\\stria-prod1\\CID01570 - WorldAware\\JID01215 - CaaS\\Output\\Vendor'
 ]
 
 id_column = 'Document Path'
