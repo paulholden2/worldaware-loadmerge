@@ -29,15 +29,15 @@ class UnicodeCsvDictReader:
     def fieldnames(self):
         return self.csv_reader.fieldnames
 
-def days_in(unit):
+def months_in(unit):
     if unit == 'years':
-        return 365
+        return 12
     elif unit == 'months':
-        return 30
-    elif unit == 'weeks':
-        return 7
-    elif unit == 'days':
         return 1
+    elif unit == 'weeks':
+        return 7 / 30
+    elif unit == 'days':
+        return 1 / 30
     else:
         return 0
 
@@ -47,8 +47,8 @@ def convert_period(phrase):
         return m
     n = int(m.group(1))
     unit = m.group(2)
-    days = days_in(unit) * n
-    return str(days)
+    months = int(round(months_in(unit) * n))
+    return str(months)
 
 def scrub_load_row(row):
     periods = [
@@ -67,6 +67,38 @@ def scrub_load_row(row):
         if v is not None:
             row[k] = v.replace('\n', ' ').replace('\r', ' ')
 
+    amounts = [
+        'Total Contract Amount',
+        'Contract Amount Year 1',
+        'Money Contract Amount Year 2'
+        'Money Contract Amount Year 3'
+        'Money Contract Amount Year 4'
+        'Money Contract Amount Year 5'
+    ]
+
+    for field in amounts:
+        if field in row:
+            try:
+                amount = float(row[field])
+                row[field] = '$%.2f' % amount
+            except ValueError:
+                row[field] = ''
+
+    field = 'Legal Terms Term for Convenience'
+    if field in row:
+        if row[field] == '':
+            row[field] = 'No'
+
+    field = 'General Document Type'
+    if field in row:
+        if row[field] == 'Referral':
+            row[field] = 'Referral Agreement'
+
+    field = 'Direct Client And Indirect Partner Bordereau Reporting'
+    if field in row:
+        if row[field] == '':
+            row[field] = 'No'
+
     return row
 
 def process_output_dir(output_dir):
@@ -81,6 +113,7 @@ def process_output_dir(output_dir):
         last_id = None
         last_row = None
         row_data = []
+        print(delivery_dir)
         # Populate row_data with data
         with codecs.open(load_file_path, 'r', encoding='utf-8-sig') as csv_file:
             csv_reader = UnicodeCsvDictReader(csv_file)
