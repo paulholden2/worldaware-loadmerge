@@ -23,7 +23,7 @@ class UnicodeCsvDictReader:
 
     def __iter__(self):
         for row in self.csv_reader:
-            yield { unicode(key, 'utf-8'): unicode(value, 'utf-8') for key, value in row.iteritems() }
+            yield { str(key): str(value) for key, value in row.items() }
 
     @property
     def fieldnames(self):
@@ -52,18 +52,17 @@ def convert_period(phrase):
 
 def scrub_load_row(row):
     periods = [
-        'Direct Client And Indirect Partner MSA Initial Term Length',
-        'Direct Client And Indirect Partner PA Initial Term Length',
         'Legal Terms Term Non-Renewal Notice',
-        'Legal Terms PA Term Non-Renewal Notice',
         'Legal Terms Term for Convenience Notice Period (days)'
     ]
 
     for p in periods:
         if p in row:
-            row[p] = convert_period(row[p])
+            m = re.search('(\d+) (Days|days)', row[p])
+            if m is not None:
+                row[p] = m.group(1)
 
-    for k, v in row.iteritems():
+    for k, v in row.items():
         if v is not None:
             row[k] = v.replace('\n', ' ').replace('\r', ' ')
 
@@ -99,6 +98,17 @@ def scrub_load_row(row):
         if row[field] == '':
             row[field] = 'No'
 
+    if row['General WA Contract Entity'] == 'WorldAware, Inc':
+        row['General WA Contract Entity'] = 'WorldAware, Inc.'
+
+    if row['General Agreement Format'] == 'Vendor':
+        c = 'Vendor Cancellation Notice Period'
+        if c in row:
+            row[c] = row[c].replace(' Days', '').replace(' days', '')
+        for amt in amounts:
+            if amt in row:
+                row[amt] = row[amt].replace('$', '')
+
     return row
 
 def process_output_dir(output_dir):
@@ -130,7 +140,7 @@ def process_output_dir(output_dir):
                     row_data.append(last_row)
                     last_id = row[id_column]
 
-            with open(out_load_file_path, 'wb') as csv_file:
+            with open(out_load_file_path, 'w', newline='') as csv_file:
                 fieldnames = list(csv_reader.fieldnames)
                 for i, v in enumerate(fieldnames):
                     if v == 'Money Total Contract Amount Year 1 (incl multi yr, fee)':
